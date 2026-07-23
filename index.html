@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f2740" />
+  <title>روبوت آلي | لوحة التحكم</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-wrap"><img src="logo.png" alt="شعار روبوت آلي" /></div>
+      <div>
+        <h1>روبوت آلي</h1>
+        <p>لوحة تحكم الذراع الروبوتية — 6 محاور</p>
+      </div>
+    </div>
+    <div class="top-status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">غير متصل</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel connection-panel">
+      <div class="section-title">
+        <h2>الاتصال</h2>
+        <span class="badge neutral" id="modeBadge">Web Serial</span>
+      </div>
+
+      <div class="connection-grid">
+        <label class="field">
+          <span>السرعة التسلسلية</span>
+          <select id="baudRate">
+            <option value="9600">9600</option>
+            <option value="57600">57600</option>
+            <option value="115200" selected>115200</option>
+          </select>
+        </label>
+
+        <button class="btn primary" id="connectBtn">اتصال بالأردوينو</button>
+        <button class="btn secondary" id="disconnectBtn" disabled>قطع الاتصال</button>
+
+        <div class="notice safe">
+          <strong>وضع آمن:</strong>
+          مخارج السيرفو تبقى معطلة عبر OE عند التشغيل، ولا تُفعّل إلا أثناء تنفيذ أمر مباشر ثم تُحرّر بعده.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel global-panel">
+      <div class="section-title">
+        <h2>التحكم العام</h2>
+        <label class="switch-row">
+          <span>تفعيل الأوامر</span>
+          <input type="checkbox" id="commandsEnabled" disabled />
+          <span class="switch"></span>
+        </label>
+      </div>
+
+      <div class="global-actions">
+        <button class="btn success command-control" id="zeroAllBtn" disabled>
+          تصفير جميع المحاور
+          <small>CH0 ← CH1 ← CH2 ← CH3 ← CH4 ← CH5</small>
+        </button>
+        <button class="btn primary command-control" id="homeBtn" disabled>وضع البداية Home</button>
+        <button class="btn danger" id="stopBtn" disabled>إيقاف فوري</button>
+        <button class="btn dark" id="disableOutputsBtn" disabled>تحرير جميع السيرفوات</button>
+
+        <label class="range-field global-speed">
+          <div>
+            <span>السرعة العامة</span>
+            <output id="globalSpeedValue">55%</output>
+          </div>
+          <input type="range" id="globalSpeed" min="1" max="100" value="55" />
+          <div class="range-labels"><span>بطيء</span><span>سريع</span></div>
+        </label>
+      </div>
+
+      <div class="progress-wrap hidden" id="sequenceProgressWrap">
+        <div class="progress-head">
+          <span id="sequenceProgressText">جاري التنفيذ...</span>
+          <span id="sequenceProgressValue">0 / 6</span>
+        </div>
+        <div class="progress"><div id="sequenceProgressBar"></div></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="axes-section">
+        <div class="section-heading-row">
+          <div>
+            <h2>المحاور</h2>
+            <p>لا يمكن تشغيل أكثر من محور في نفس الوقت.</p>
+          </div>
+          <span class="badge neutral" id="activeAxisBadge">لا يوجد محور نشط</span>
+        </div>
+        <div class="axes-grid" id="axesGrid"></div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel log-panel">
+          <div class="section-title">
+            <h2>سجل الأوامر</h2>
+            <button class="text-btn" id="clearLogBtn">مسح</button>
+          </div>
+          <div class="log" id="commandLog" aria-live="polite"></div>
+        </section>
+
+        <section class="panel safety-panel">
+          <div class="section-title"><h2>السلامة والإعدادات</h2></div>
+          <label class="check-row"><input type="checkbox" checked disabled /> تحريك محور واحد فقط في كل مرة</label>
+          <label class="check-row"><input type="checkbox" checked disabled /> منع الحركة عند التشغيل عبر OE</label>
+          <label class="check-row"><input type="checkbox" checked disabled /> تحرير السيرفو بعد كل أمر</label>
+          <label class="check-row"><input type="checkbox" checked disabled /> المجال العام 0° إلى 180° بدون حدود خاصة بالمفاصل</label>
+          <label class="check-row"><input type="checkbox" id="confirmZero" checked /> تأكيد قبل تصفير جميع المحاور</label>
+          <label class="check-row"><input type="checkbox" id="lockDuringMove" checked /> قفل بقية الأزرار أثناء الحركة</label>
+
+          <div class="tip">
+            <strong>مهم:</strong>
+            لا توصل أو تفصل فيشة سيرفو بينما تغذية V+ شغالة. وصّل OE إلى D8 مع مقاومة 10k إلى 5V.
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <span>Arduino UNO + PCA9685</span>
+    <span id="sessionTime">وقت الجلسة: 00:00:00</span>
+  </footer>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <template id="axisCardTemplate">
+    <article class="axis-card">
+      <div class="axis-head">
+        <div>
+          <span class="axis-channel"></span>
+          <h3 class="axis-name"></h3>
+        </div>
+        <span class="servo-badge"></span>
+      </div>
+
+      <div class="angle-display">
+        <span>الزاوية الحالية</span>
+        <strong class="angle-value">--°</strong>
+      </div>
+
+      <label class="range-field">
+        <input class="angle-slider command-control" type="range" min="0" max="180" value="90" disabled />
+        <div class="range-labels"><span class="min-label">0°</span><span class="max-label">180°</span></div>
+      </label>
+
+      <div class="direction-controls">
+        <button class="move-minus command-control" disabled>−</button>
+        <div class="step-control">
+          <span>حجم الخطوة</span>
+          <div class="segmented">
+            <button data-step="1">1°</button>
+            <button class="selected" data-step="5">5°</button>
+            <button data-step="10">10°</button>
+          </div>
+        </div>
+        <button class="move-plus command-control" disabled>+</button>
+      </div>
+
+      <div class="axis-options">
+        <label class="field compact">
+          <span>سرعة المحور</span>
+          <select class="axis-speed">
+            <option value="global" selected>العامة</option>
+            <option value="20">بطيئة</option>
+            <option value="55">متوسطة</option>
+            <option value="85">سريعة</option>
+          </select>
+        </label>
+
+        <label class="switch-row compact-switch">
+          <span>عكس الاتجاه</span>
+          <input class="reverse-toggle" type="checkbox" />
+          <span class="switch"></span>
+        </label>
+      </div>
+
+      <button class="btn outline zero-axis command-control" disabled>تصفير هذا المحور</button>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
